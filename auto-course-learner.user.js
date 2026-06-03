@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         网校自动刷课助手
 // @namespace    https://wsyu.wnssedu.com
-// @version      2.5
-// @description  自动打开未完成课程、播放、跳过弹窗、默认静音
+// @version      1.0
+// @description  一键刷课、自动跳过弹窗、自动下一节
 // @author       Claude
 // @match        https://wsyu.wnssedu.com/student/prese/studytasklist.htm*
 // @match        https://wsyu.wnssedu.com/course/newcourse/info/intro.htm*
