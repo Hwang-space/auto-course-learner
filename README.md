@@ -14,7 +14,7 @@ ScriptCat 用户脚本，自动完成网校课程学习。
 1. 安装 [ScriptCat](https://docs.scriptcat.org/) 浏览器扩展
 2. 点击以下链接安装脚本：
 
-[安装脚本](https://raw.githubusercontent.com/Hwang-space/auto-course-learner/main/auto-course-learner.user.js)
+[安装脚本](https://raw.githubusercontent.com/Hwang-space/auto-course-learner/master/auto-course-learner.user.js)
 
 ## 使用
 
