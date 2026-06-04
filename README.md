@@ -16,7 +16,7 @@ ScriptCat 用户脚本，自动完成 WSYU 网校就业指导课程学习。
 ## 安装
 
 1. 安装 [ScriptCat](https://docs.scriptcat.org/) 浏览器扩展（Edge / Chrome）
-2. 点击安装脚本：[wsyu-course-auto-learner.user.js](https://raw.githubusercontent.com/Hwang-space/wsyu-course-auto-learner/master/auto-course-learner.user.js)
+2. 点击安装脚本：[wsyu-course-auto-learner.user.js](https://raw.githubusercontent.com/Zamp1e/wsyu-course-auto-learner/master/auto-course-learner.user.js)
 
 > **注意**：首次运行脚本时，浏览器可能会在地址栏右侧弹出安全拦截提示，点击「允许」即可正常使用。
 
