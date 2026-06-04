@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         网校自动刷课助手
 // @namespace    https://wsyu.wnssedu.com
-// @version      1.2
+// @version      1.3
 // @description  一键刷课、自动跳过弹窗、自动下一节
 // @author       Claude
 // @match        https://wsyu.wnssedu.com/student/prese/studytasklist.htm*
@@ -23,7 +23,7 @@
 
   // 开关持久化
   function loadToggles() {
-    const defaults = { autoJump: true, autoPlay: true, autoSkip: true, autoBack: false };
+    const defaults = { autoPlay: true, autoSkip: true, autoBack: true };
     try {
       const saved = JSON.parse(GM_getValue('toggles', '{}'));
       return Object.assign({}, defaults, saved);
@@ -62,10 +62,9 @@
           ${isTaskList ? '<button id="asAutoBtn" class="as-btn as-btn-orange">一键刷课</button>' : '<button id="asOpenAllBtn" class="as-btn as-btn-green">全部打开</button>'}
         </div>
         <div class="as-toggles" id="asToggles">
-          <label class="as-switch"><span>自动下一节</span><input type="checkbox" id="tgJump"${toggles.autoJump?' checked':''}><i></i></label>
+          <label class="as-switch"><span>查漏模式</span><input type="checkbox" id="tgBack"${toggles.autoBack?' checked':''}><i></i></label>
           <label class="as-switch"><span>自动播放</span><input type="checkbox" id="tgPlay"${toggles.autoPlay?' checked':''}><i></i></label>
           <label class="as-switch"><span>自动跳过弹窗</span><input type="checkbox" id="tgSkip"${toggles.autoSkip?' checked':''}><i></i></label>
-          ${isWatch ? '<label class="as-switch"><span>查漏模式</span><input type="checkbox" id="tgBack"'+ (toggles.autoBack?' checked':'') +'><i></i></label>' : ''}
         </div>
         <div id="asStatus" class="as-status"></div>
       </div>
@@ -169,23 +168,13 @@
       el.addEventListener('change', () => {
         toggles[key] = el.checked;
         saveToggles(toggles);
-        // 自动下一节 和 查漏模式 互斥
-        if (key === 'autoJump' && el.checked) {
-          const back = document.getElementById('tgBack');
-          if (back) { back.checked = false; toggles.autoBack = false; }
-        }
-        if (key === 'autoBack' && el.checked) {
-          const jump = document.getElementById('tgJump');
-          if (jump) { jump.checked = false; toggles.autoJump = false; }
-        }
         setStatus((el.checked ? '✓ ' : '✗ ') + el.parentElement.querySelector('span').textContent, el.checked ? 'ok' : '');
         setTimeout(() => { if (document.getElementById('asStatus')) setStatus('', ''); }, 1500);
       });
     }
-    bindToggle('tgJump', 'autoJump');
+    bindToggle('tgBack', 'autoBack');
     bindToggle('tgPlay', 'autoPlay');
     bindToggle('tgSkip', 'autoSkip');
-    bindToggle('tgBack', 'autoBack');
 
     // 打开课程
     function openCourses(lines) {
@@ -299,12 +288,6 @@
     });
   }
 
-  function goNextSection() {
-    const btn = document.getElementById('btn3');
-    if (btn?.offsetParent) { btn.click(); return true; }
-    return false;
-  }
-
   function goBack() {
     const back = document.querySelector('.course_back_section');
     if (back?.offsetParent) { back.click(); return true; }
@@ -373,10 +356,6 @@
           if (toggles.autoBack) {
             setStatus('已播完，返回目录', 'warn');
             goBack();
-          } else if (toggles.autoJump) {
-            setStatus('已播完，跳下一节', 'warn');
-            goNextSection();
-            setTimeout(() => resumePlay(), 3000);
           } else {
             setStatus('已播完', 'ok');
           }
@@ -426,7 +405,7 @@
   function startIntroPage() {
     createFloatingPanel();
 
-    if (!toggles.autoJump && !toggles.autoBack) { setStatus('自动下一节/查漏模式已关闭', ''); return; }
+    if (!toggles.autoBack) { setStatus('查漏模式已关闭', ''); return; }
 
     const tryJump = () => {
       const item = findFirstIncomplete();
