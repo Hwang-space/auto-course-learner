@@ -23,7 +23,7 @@
 
   // 开关持久化
   function loadToggles() {
-    const defaults = { autoJump: true, autoPlay: true, autoSkip: true, autoBack: true };
+    const defaults = { autoJump: true, autoPlay: true, autoSkip: true, autoBack: false };
     try {
       const saved = JSON.parse(GM_getValue('toggles', '{}'));
       return Object.assign({}, defaults, saved);
