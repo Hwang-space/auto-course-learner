@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         网校自动刷课助手
 // @namespace    https://wsyu.wnssedu.com
-// @version      1.0
+// @version      1.1
 // @description  一键刷课、自动跳过弹窗、自动下一节
 // @author       Claude
 // @match        https://wsyu.wnssedu.com/student/prese/studytasklist.htm*
@@ -21,6 +21,21 @@
   const url = new URL(location.href);
   const path = url.pathname;
 
+  // 开关持久化
+  function loadToggles() {
+    const defaults = { autoJump: true, autoPlay: true, autoSkip: true, autoBack: true };
+    try {
+      const saved = JSON.parse(GM_getValue('toggles', '{}'));
+      return Object.assign({}, defaults, saved);
+    } catch (_) { return defaults; }
+  }
+
+  function saveToggles(t) {
+    GM_setValue('toggles', JSON.stringify(t));
+  }
+
+  let toggles = loadToggles();
+
   // ═══════════════════════════════════════════════════
   //  悬浮面板
   // ═══════════════════════════════════════════════════
@@ -30,6 +45,7 @@
 
     const courseUrls = GM_getValue('courseUrls', '');
     const isTaskList = path.includes('studytasklist.htm');
+    const isWatch = path.includes('watch.htm');
 
     const panel = document.createElement('div');
     panel.id = 'autoStudyPanel';
@@ -44,6 +60,12 @@
                   placeholder="https://wsyu.wnssedu.com/course/newcourse/info/intro.htm?courseId=...">${escapeHtml(courseUrls)}</textarea>
         <div class="as-btn-row">
           ${isTaskList ? '<button id="asAutoBtn" class="as-btn as-btn-orange">一键刷课</button>' : '<button id="asOpenAllBtn" class="as-btn as-btn-green">全部打开</button>'}
+        </div>
+        <div class="as-toggles" id="asToggles">
+          <label class="as-switch"><span>自动跳转</span><input type="checkbox" id="tgJump"${toggles.autoJump?' checked':''}><i></i></label>
+          <label class="as-switch"><span>自动播放</span><input type="checkbox" id="tgPlay"${toggles.autoPlay?' checked':''}><i></i></label>
+          <label class="as-switch"><span>自动跳过弹窗</span><input type="checkbox" id="tgSkip"${toggles.autoSkip?' checked':''}><i></i></label>
+          ${isWatch ? '<label class="as-switch"><span>自动返回</span><input type="checkbox" id="tgBack"'+ (toggles.autoBack?' checked':'') +'><i></i></label>' : ''}
         </div>
         <div id="asStatus" class="as-status"></div>
       </div>
@@ -87,6 +109,25 @@
       .as-btn-orange:hover { background: #ff7b2e; }
       .as-btn-green { background: #40a02b; }
       .as-btn-green:hover { background: #54c23b; }
+      .as-toggles { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+      .as-switch {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 6px 10px; background: #313244; border-radius: 6px;
+        cursor: pointer; font-size: 12px; user-select: none;
+      }
+      .as-switch span { color: #cdd6f4; }
+      .as-switch input { display: none; }
+      .as-switch i {
+        display: block; width: 36px; height: 20px; border-radius: 10px;
+        background: #45475a; position: relative; transition: background .2s;
+      }
+      .as-switch i::after {
+        content: ''; display: block; width: 16px; height: 16px; border-radius: 50%;
+        background: #a6adc8; position: absolute; top: 2px; left: 2px;
+        transition: transform .2s;
+      }
+      .as-switch input:checked + i { background: #40a02b; }
+      .as-switch input:checked + i::after { transform: translateX(16px); background: #fff; }
       .as-status { margin-top: 10px; font-size: 12px; min-height: 18px; color: #a6adc8; }
       .as-status.ok { color: #a6e3a1; }
       .as-status.warn { color: #f9e2af; }
@@ -120,6 +161,22 @@
       body.classList.toggle('collapsed');
       tog.textContent = body.classList.contains('collapsed') ? '+' : '−';
     });
+
+    // 开关事件
+    function bindToggle(id, key) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('change', () => {
+        toggles[key] = el.checked;
+        saveToggles(toggles);
+        setStatus((el.checked ? '✓ ' : '✗ ') + el.parentElement.querySelector('span').textContent, el.checked ? 'ok' : '');
+        setTimeout(() => { if (document.getElementById('asStatus')) setStatus('', ''); }, 1500);
+      });
+    }
+    bindToggle('tgJump', 'autoJump');
+    bindToggle('tgPlay', 'autoPlay');
+    bindToggle('tgSkip', 'autoSkip');
+    bindToggle('tgBack', 'autoBack');
 
     // 打开课程
     function openCourses(lines) {
@@ -174,7 +231,6 @@
         openCourses(lines);
       });
     }
-
   }
 
   function setStatus(msg, cls) {
@@ -234,9 +290,9 @@
     });
   }
 
-  function goNextSection() {
-    const btn = document.getElementById('btn3');
-    if (btn?.offsetParent) { btn.click(); return true; }
+  function goBack() {
+    const back = document.querySelector('.course_back_section');
+    if (back?.offsetParent) { back.click(); return true; }
     return false;
   }
 
@@ -251,12 +307,12 @@
   let busy = false;
 
   function processModal(callback) {
-    if (busy) return;
+    if (busy || !toggles.autoSkip) return;
     if (!getModalInfo()) return;
     busy = true;
     setStatus('跳过弹窗', 'warn');
     skipModal();
-    setTimeout(() => { resumePlay(); busy = false; if (callback) callback(); }, 800);
+    setTimeout(() => { if (toggles.autoPlay) resumePlay(); busy = false; if (callback) callback(); }, 800);
   }
 
   // ═══════════════════════════════════════════════════
@@ -264,6 +320,7 @@
   // ═══════════════════════════════════════════════════
 
   let watchTimer = null;
+  let videoEnded = false;
 
   function startWatchMonitor() {
     createFloatingPanel();
@@ -275,11 +332,12 @@
     const check = () => {
       if (busy) return;
 
-      const modal = getModalInfo();
-      if (modal) { processModal(check); return; }
+      if (toggles.autoSkip) {
+        const modal = getModalInfo();
+        if (modal) { processModal(check); return; }
+      }
 
       const v = document.querySelector('video');
-      // 检测卡住：视频元素存在但数据未加载
       if (v && v.readyState === 0 && v.currentTime === 0) {
         if (!stuckSince) stuckSince = Date.now();
         if (Date.now() - stuckSince > 8000) {
@@ -295,11 +353,21 @@
 
       const state = getVideoState();
       if (state === 'ended') {
-        setStatus('已播完，跳下一节', 'warn');
-        goNextSection();
-        setTimeout(() => resumePlay(), 3000);
+        if (!videoEnded) {
+          videoEnded = true;
+          if (toggles.autoBack) {
+            setStatus('已播完，返回目录', 'warn');
+            goBack();
+          } else {
+            setStatus('已播完', 'ok');
+          }
+        }
       } else if (state === 'paused') {
-        resumePlay();
+        videoEnded = false;
+        if (toggles.autoPlay) resumePlay();
+      } else if (state === 'playing') {
+        videoEnded = false;
+        setStatus('播放中', 'ok');
       }
     };
 
@@ -309,33 +377,55 @@
   }
 
   // ═══════════════════════════════════════════════════
-  //  课程详情页 — 自动点击「继续学习」
+  //  课程目录页 — 找到第一个未完成视频并点击
   // ═══════════════════════════════════════════════════
 
-  function startIntroPage() {
-    const goWatch = () => {
-      const btns = document.querySelectorAll('input[type="button"]');
-      for (const btn of btns) {
-        if (btn.value === '继续学习') {
-          const oc = btn.getAttribute('onclick') || '';
-          const m = oc.match(/showVideo\((\d+),\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)/);
-          if (m) {
-            const [, courseId, cwId, vId, nSec, type] = m;
-            location.href = `/course/newcourse/watch.htm?courseId=${courseId}&lCoursewareId=${cwId}&lVideoId=${vId}&nViewSecond=${nSec}&type=${type}`;
-            return true;
-          }
-          // 兜底：直接点击
-          btn.click();
-          return true;
-        }
+  function findFirstIncomplete() {
+    const items = document.querySelectorAll('.showVideo');
+    for (const div of items) {
+      const allPs = div.querySelectorAll('p');
+      let progress = '';
+      allPs.forEach(p => {
+        const t = p.textContent.trim();
+        if (/^\d+%$/.test(t)) progress = t;
+      });
+      if (!progress) continue;
+      const pct = parseInt(progress, 10);
+      if (pct >= 100) continue;
+      const clickable = div.querySelector('p[onclick*="showVideo"]');
+      if (!clickable) continue;
+      const oc = clickable.getAttribute('onclick') || '';
+      const m = oc.match(/showVideo\((\d+),\s*(\d+),\s*(\d+),\s*(\d+),\s*(\d+)\)/);
+      if (m) {
+        const [, courseId, cwId, vId, nSec, type] = m;
+        return { courseId, cwId, vId, nSec, type, text: clickable.textContent.trim(), el: clickable };
       }
-      return false;
+    }
+    return null;
+  }
+
+  function startIntroPage() {
+    createFloatingPanel();
+
+    if (!toggles.autoJump) { setStatus('自动跳转已关闭', ''); return; }
+
+    const tryJump = () => {
+      const item = findFirstIncomplete();
+      if (!item) return false;
+      const url = `/course/newcourse/watch.htm?courseId=${item.courseId}&lCoursewareId=${item.cwId}&lVideoId=${item.vId}&nViewSecond=${item.nSec}&type=${item.type}`;
+      setStatus('跳转: ' + item.text, 'warn');
+      location.href = url;
+      return true;
     };
-    if (!goWatch()) {
+
+    if (!tryJump()) {
+      // 目录可能还没加载，重试
+      let retries = 0;
       const retry = setInterval(() => {
-        if (goWatch()) clearInterval(retry);
+        retries++;
+        if (tryJump() || retries > 20) clearInterval(retry);
       }, 500);
-      setTimeout(() => clearInterval(retry), 30000);
+      setTimeout(() => clearInterval(retry), 12000);
     }
   }
 
@@ -347,7 +437,6 @@
     startWatchMonitor();
   } else if (path.includes('intro.htm')) {
     startIntroPage();
-    createFloatingPanel();
   } else if (path.includes('studytasklist.htm')) {
     createFloatingPanel();
   }
