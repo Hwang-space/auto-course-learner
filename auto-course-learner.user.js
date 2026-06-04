@@ -62,7 +62,7 @@
           ${isTaskList ? '<button id="asAutoBtn" class="as-btn as-btn-orange">一键刷课</button>' : '<button id="asOpenAllBtn" class="as-btn as-btn-green">全部打开</button>'}
         </div>
         <div class="as-toggles" id="asToggles">
-          <label class="as-switch"><span>查漏模式</span><input type="checkbox" id="tgBack"${toggles.autoBack?' checked':''}><i></i></label>
+          <label class="as-switch"><span>自动下一节</span><input type="checkbox" id="tgBack"${toggles.autoBack?' checked':''}><i></i></label>
           <label class="as-switch"><span>自动播放</span><input type="checkbox" id="tgPlay"${toggles.autoPlay?' checked':''}><i></i></label>
           <label class="as-switch"><span>自动跳过弹窗</span><input type="checkbox" id="tgSkip"${toggles.autoSkip?' checked':''}><i></i></label>
         </div>
@@ -405,7 +405,7 @@
   function startIntroPage() {
     createFloatingPanel();
 
-    if (!toggles.autoBack) { setStatus('查漏模式已关闭', ''); return; }
+    if (!toggles.autoBack) { setStatus('自动下一节已关闭', ''); return; }
 
     const tryJump = () => {
       const item = findFirstIncomplete();
