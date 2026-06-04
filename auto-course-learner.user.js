@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         网校自动刷课助手
 // @namespace    https://wsyu.wnssedu.com
-// @version      1.1
+// @version      1.2
 // @description  一键刷课、自动跳过弹窗、自动下一节
 // @author       Claude
 // @match        https://wsyu.wnssedu.com/student/prese/studytasklist.htm*
@@ -169,6 +169,15 @@
       el.addEventListener('change', () => {
         toggles[key] = el.checked;
         saveToggles(toggles);
+        // 自动下一节 和 查漏模式 互斥
+        if (key === 'autoJump' && el.checked) {
+          const back = document.getElementById('tgBack');
+          if (back) { back.checked = false; toggles.autoBack = false; }
+        }
+        if (key === 'autoBack' && el.checked) {
+          const jump = document.getElementById('tgJump');
+          if (jump) { jump.checked = false; toggles.autoJump = false; }
+        }
         setStatus((el.checked ? '✓ ' : '✗ ') + el.parentElement.querySelector('span').textContent, el.checked ? 'ok' : '');
         setTimeout(() => { if (document.getElementById('asStatus')) setStatus('', ''); }, 1500);
       });
@@ -290,6 +299,12 @@
     });
   }
 
+  function goNextSection() {
+    const btn = document.getElementById('btn3');
+    if (btn?.offsetParent) { btn.click(); return true; }
+    return false;
+  }
+
   function goBack() {
     const back = document.querySelector('.course_back_section');
     if (back?.offsetParent) { back.click(); return true; }
@@ -358,6 +373,10 @@
           if (toggles.autoBack) {
             setStatus('已播完，返回目录', 'warn');
             goBack();
+          } else if (toggles.autoJump) {
+            setStatus('已播完，跳下一节', 'warn');
+            goNextSection();
+            setTimeout(() => resumePlay(), 3000);
           } else {
             setStatus('已播完', 'ok');
           }
@@ -407,7 +426,7 @@
   function startIntroPage() {
     createFloatingPanel();
 
-    if (!toggles.autoJump) { setStatus('自动下一节已关闭', ''); return; }
+    if (!toggles.autoJump && !toggles.autoBack) { setStatus('自动下一节/查漏模式已关闭', ''); return; }
 
     const tryJump = () => {
       const item = findFirstIncomplete();
