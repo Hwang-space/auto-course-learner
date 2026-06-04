@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         网校自动刷课助手
 // @namespace    https://wsyu.wnssedu.com
-// @version      1.3
+// @version      1.4
 // @description  一键刷课、自动跳过弹窗、自动下一节
 // @author       Claude
 // @match        https://wsyu.wnssedu.com/student/prese/studytasklist.htm*
@@ -23,7 +23,7 @@
 
   // 开关持久化
   function loadToggles() {
-    const defaults = { autoPlay: true, autoSkip: true, autoBack: true };
+    const defaults = { autoPlay: true, autoSkip: true, autoBack: true, autoLeak: false };
     try {
       const saved = JSON.parse(GM_getValue('toggles', '{}'));
       return Object.assign({}, defaults, saved);
@@ -65,6 +65,7 @@
           <label class="as-switch"><span>自动下一节</span><input type="checkbox" id="tgBack"${toggles.autoBack?' checked':''}><i></i></label>
           <label class="as-switch"><span>自动播放</span><input type="checkbox" id="tgPlay"${toggles.autoPlay?' checked':''}><i></i></label>
           <label class="as-switch"><span>自动跳过弹窗</span><input type="checkbox" id="tgSkip"${toggles.autoSkip?' checked':''}><i></i></label>
+          <label class="as-switch"><span>查漏模式</span><input type="checkbox" id="tgLeak"${toggles.autoLeak?' checked':''}><i></i></label>
         </div>
         <div id="asStatus" class="as-status"></div>
       </div>
@@ -175,6 +176,7 @@
     bindToggle('tgBack', 'autoBack');
     bindToggle('tgPlay', 'autoPlay');
     bindToggle('tgSkip', 'autoSkip');
+    bindToggle('tgLeak', 'autoLeak');
 
     // 打开课程
     function openCourses(lines) {
@@ -410,7 +412,8 @@
     const tryJump = () => {
       const item = findFirstIncomplete();
       if (!item) return false;
-      const url = `/course/newcourse/watch.htm?courseId=${item.courseId}&lCoursewareId=${item.cwId}&lVideoId=${item.vId}&nViewSecond=${item.nSec}&type=${item.type}`;
+      const nSec = toggles.autoLeak ? 0 : item.nSec;
+      const url = `/course/newcourse/watch.htm?courseId=${item.courseId}&lCoursewareId=${item.cwId}&lVideoId=${item.vId}&nViewSecond=${nSec}&type=${item.type}`;
       setStatus('跳转: ' + item.text, 'warn');
       location.href = url;
       return true;
